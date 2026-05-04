@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CSM Customer Audit</title>
+<style>
+:root {
+  --bg: #FAFAF9;
+  --surface: #FFFFFF;
+  --surface-2: #F5F5F4;
+  --border: #E7E5E4;
+  --border-strong: #D6D3D1;
+  --text: #1C1917;
+  --text-2: #57534E;
+  --text-3: #A8A29E;
+  --accent: #0F172A;
+  --accent-soft: #1E293B;
+  --good: #15803D;
+  --good-bg: #F0FDF4;
+  --warn: #C2410C;
+  --warn-bg: #FFF7ED;
+  --bad: #B91C1C;
+  --bad-bg: #FEF2F2;
+  --na: #78716C;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea { font-family: inherit; font-size: inherit; }
+
+/* ============================================
+   APP SHELL
+============================================ */
+.app { display: flex; min-height: 100vh; }
+
+/* ============================================
+   SIDEBAR
+============================================ */
+.sidebar {
+  width: 260px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+}
+.sidebar-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.brand-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.audit-meta {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.meta-customer { font-size: 14px; font-weight: 600; color: var(--text); }
+.meta-csm { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.meta-empty { font-size: 12px; color: var(--text-3); font-style: italic; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 12px 8px; }
+.nav-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 12px 12px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+  margin-bottom: 1px;
+  transition: background 120ms ease;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+.nav-item.active .nav-progress { color: rgba(255,255,255,0.7); }
+.nav-item.active .nav-dot { background: rgba(255,255,255,0.9); }
+.nav-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nav-label-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  flex-shrink: 0;
+}
+.nav-dot.complete { background: var(--good); }
+.nav-dot.partial { background: var(--warn); }
+.nav-progress {
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.overall-progress {
+  padding: 0 8px 8px;
+}
+.overall-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.progress-bar {
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--good);
+  transition: width 300ms ease;
+  border-radius: 2px;
+}
+
+/* ============================================
+   MAIN CONTENT
+============================================ */
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.crumb { font-size: 13px; color: var(--text-3); }
+.crumb-current { font-size: 14px; font-weight: 600; color: var(--text); }
+.crumb-sep { color: var(--text-3); font-size: 12px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+.content {
+  padding: 32px 32px 80px;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================================
+   HEADER BLOCK
+============================================ */
+.h-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.h-title {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.h-sub {
+  font-size: 15px;
+  color: var(--text-2);
+  margin-bottom: 24px;
+}
+
+/* ============================================
+   PRINCIPLE CARD
+============================================ */
+.principle-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  margin-bottom: 28px;
+}
+.principle-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.principle-text { font-size: 14px; color: var(--text); line-height: 1.6; }
+
+/* ============================================
+   STEP 1 — SETUP
+============================================ */
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.field-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.field-input:hover { border-color: var(--border-strong); }
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.product-tile {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 120ms ease;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.product-tile:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.product-tile.selected {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.product-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  transition: all 120ms ease;
+}
+.product-tile.selected .product-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.product-check svg { opacity: 0; }
+.product-tile.selected .product-check svg { opacity: 1; }
+.product-info { flex: 1; }
+.product-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.product-desc { font-size: 12px; color: var(--text-2); }
+
+/* ============================================
+   STEP 2 — SCORING
+============================================ */
+.subsection-block { margin-bottom: 36px; }
+.subsection-block:last-child { margin-bottom: 0; }
+.subsection-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.005em;
+}
+.subsection-meta {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 16px;
+}
+
+.band-block { margin-bottom: 20px; }
+.band-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  margin-bottom: 8px;
+  transition: all 150ms ease;
+}
+.item:hover { border-color: var(--border-strong); }
+.item.scored-3 { border-left: 3px solid var(--good); padding-left: 16px; }
+.item.scored-2 { border-left: 3px solid var(--warn); padding-left: 16px; }
+.item.scored-1 { border-left: 3px solid var(--bad); padding-left: 16px; }
+.item.scored-na { opacity: 0.55; background: var(--surface-2); }
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.item-name { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; line-height: 1.5; }
+
+.item-criteria {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 12px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+.crit-block { font-size: 12.5px; }
+.crit-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.crit-good .crit-header { color: var(--good); }
+.crit-bad .crit-header { color: var(--bad); }
+.crit-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.crit-good .crit-icon { background: var(--good-bg); color: var(--good); }
+.crit-bad .crit-icon { background: var(--bad-bg); color: var(--bad); }
+.crit-text { color: var(--text-2); line-height: 1.55; }
+
+.score-row {
+  display: flex;
+  gap: 6px;
+}
+.score-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: all 120ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.score-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.score-btn .score-num {
+  font-weight: 600;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.score-btn .score-label {
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.score-btn.active-3 { background: var(--good); border-color: var(--good); color: white; }
+.score-btn.active-3:hover { background: var(--good); border-color: var(--good); color: white; }
+.score-btn.active-2 { background: var(--warn); border-color: var(--warn); color: white; }
+.score-btn.active-2:hover { background: var(--warn); border-color: var(--warn); color: white; }
+.score-btn.active-1 { background: var(--bad); border-color: var(--bad); color: white; }
+.score-btn.active-1:hover { background: var(--bad); border-color: var(--bad); color: white; }
+.score-btn.active-na { background: var(--text-2); border-color: var(--text-2); color: white; }
+.score-btn.active-na:hover { background: var(--text-2); border-color: var(--text-2); color: white; }
+
+/* ============================================
+   STEP 3 — ACTION PLAN
+============================================ */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.summary-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+}
+.summary-stat-label {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.summary-stat-value {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.summary-stat-value .unit { font-size: 14px; color: var(--text-3); font-weight: 400; }
+.summary-stat-value.good { color: var(--good); }
+.summary-stat-value.warn { color: var(--warn); }
+.summary-stat-value.bad { color: var(--bad); }
+
+.score-bars {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+.score-bar-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.score-bar-row:last-child { border-bottom: none; }
+.score-bar-name { font-size: 13px; color: var(--text); }
+.score-bar-track-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+.score-bar-track {
+  width: 120px;
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.score-bar-fill { height: 100%; border-radius: 3px; transition: width 400ms ease; }
+.score-bar-value { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+.score-bar-value.good { color: var(--good); }
+.score-bar-value.warn { color: var(--warn); }
+.score-bar-value.bad { color: var(--bad); }
+.score-bar-value.na { color: var(--text-3); font-weight: 400; font-style: italic; font-size: 12px; }
+
+.gap-section {
+  margin-bottom: 32px;
+}
+.gap-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.gap-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gap-count-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.gap-count-pill.crit { background: var(--bad-bg); color: var(--bad); }
+.gap-count-pill.mod { background: var(--warn-bg); color: var(--warn); }
+.gap-section-sub { font-size: 12px; color: var(--text-2); margin-bottom: 12px; }
+
+.gap-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.gap-card-header {
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.gap-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.gap-item:last-child { border-bottom: none; }
+.gap-item-name { font-size: 14px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+.gap-item-rec { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+.gap-item-rec strong { color: var(--good); font-weight: 600; }
+
+.export-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 20px;
+  margin-top: 32px;
+}
+.export-textarea {
+  width: 100%;
+  min-height: 280px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+  margin-top: 12px;
+}
+.export-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+/* ============================================
+   BUTTONS
+============================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 120ms ease;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn-ghost { border-color: transparent; }
+.btn-ghost:hover { background: var(--surface-2); border-color: transparent; }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.copy-toast {
+  font-size: 12px;
+  color: var(--good);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.copy-toast.show { opacity: 1; }
+
+/* ============================================
+   EMPTY STATE
+============================================ */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-2);
+}
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.empty-sub { font-size: 13px; color: var(--text-2); }
+
+/* ============================================
+   FAB / FLOATING
+============================================ */
+.section-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .sidebar { width: 220px; }
+  .content { padding: 24px 20px 60px; }
+  .item-criteria { grid-template-columns: 1fr; }
+  .product-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app"></div>
+
+<script>
+// ============================================
+// AUDIT DATA
+// ============================================
+const AUDIT_DATA = {
+  globalConfig: {
+    title: "Global Configuration",
+    principle: "Anything you can solve at the config layer (brands, AI Personality, tags, conditions) should not be solved inside flows.",
+    subsections: [
+      { title: "Widget Configuration", product: "widget", bands: [
+        { name: "Brands & User Segmentation", items: [
+          { id: "gc-w-1", name: "Brands aligned with user types (paid / trial / unauth)", good: "Distinct brands per major user type. AI Personality and assigned workflows differ where it matters. Workflow tags carry the user type.", bad: "One brand for everyone. User-type logic duplicated inside dozens of flows." },
+          { id: "gc-w-2", name: "Sub-brands separated cleanly", good: "Each sub-brand has its own AI Personality, theme, and assigned flows.", bad: "Multiple brands forced into one config. Flows have hardcoded if/else for brand." },
+          { id: "gc-w-3", name: "Workflow tags assigned per brand/user type", good: "Tags drive prescriptive routing. New flows inherit them.", bad: "Tags blank or used inconsistently. Personalization via duplicate flows." }
+        ]},
+        { name: "Theme", items: [
+          { id: "gc-w-4", name: "Intro message and selectable intents", good: "Short, broad greeting. Selectable intents used sparingly or not at all to encourage free-form questions.", bad: "Long paragraph greeting or wall of canned options that pollute intent analytics." },
+          { id: "gc-w-5", name: "Avatar, launch icon, prompt styling", good: "Clean, on-brand, modern. Looks intentional.", bad: "Default placeholder, cropped squares, oversized launch icons." }
+        ]},
+        { name: "AI Personality (Critical)", items: [
+          { id: "gc-w-6", name: "General Context section", good: "Detailed: company, products, customer types, behavioral guidance. Reads like an onboarding doc.", bad: "Empty, one-liner, or stuffed with KB content and quick-fix instructions." },
+          { id: "gc-w-7", name: "Glossary populated", good: "Common acronyms defined (BAA, etc.). Synonyms documented. Feeds search and prevents fallbacks.", bad: "Empty. Bot asks users to clarify acronyms or returns nothing on shorthand." },
+          { id: "gc-w-8", name: "Tone of voice with examples", good: "Each tone behavior includes a positive example. Covers escalations and edge cases.", bad: "One-liner tone like 'be professional.' No examples." },
+          { id: "gc-w-9", name: "No conflicting instructions across sections", good: "Context, glossary, and tone reinforce each other.", bad: "Sections contradict each other. Bot behaves erratically." }
+        ]},
+        { name: "CSAT", items: [
+          { id: "gc-w-10", name: "CSAT trigger method", good: "Accessible via header AND in-flow trigger points at successful resolution. No 'on minimize.'", bad: "On-minimize triggers. Scores cap around 3.2-3.4 because users dismiss to exit." },
+          { id: "gc-w-11", name: "CSAT subflow reused", good: "Single CSAT subflow that all flows reroute to. One source of truth.", bad: "CSAT logic copy-pasted into every flow. Updates require dozens of edits." }
+        ]},
+        { name: "Embed, JWT, and Triggers", items: [
+          { id: "gc-w-12", name: "Predefined variables defined and populated", good: "All needed CVs checked AND populated in embed script. JWT used for authenticated users.", bad: "Variables defined but never set. Permanently null. Or sensitive data passed in plaintext." },
+          { id: "gc-w-13", name: "Domain whitelisting and key scoping", good: "Widget restricted to authorized domains. API keys scoped per integration.", bad: "Wide-open whitelisting. One shared key reused across products." },
+          { id: "gc-w-14", name: "Proactive triggers configured", good: "Event-based triggers fire on UI actions or errors and route to the right flow.", bad: "Unused. Customer relies on users finding the widget themselves." }
+        ]},
+        { name: "Banner", items: [
+          { id: "gc-w-15", name: "Banner usage is intentional", good: "Used for events, promotions, and timely announcements. Removed when stale.", bad: "Permanent decoration not updated in months. Or unused on obvious promotional moments." }
+        ]}
+      ]},
+      { title: "Email Configuration", product: "email", bands: [
+        { name: "Eligibility & Tagging", items: [
+          { id: "gc-e-1", name: "'Do not respond' rules live in Configuration, not in flows", good: "User types and tags excluded at config layer. Eligibility rate accurately reflects automatable volume.", bad: "Exclusion logic inside flows. 80% of eligible volume caught mid-flow, dragging response rate to misleading single digits." },
+          { id: "gc-e-2", name: "Tag fields distinct per response and user type", good: "Each branch fires a unique tag. Analytics can attribute outcomes. Tags drive Zendesk routing.", bad: "One generic tag for everything. No attribution. Tags purely cosmetic." },
+          { id: "gc-e-3", name: "AI Personality completed for Email channel", good: "Email-appropriate tone (formal, dense, low-emoji). Same context depth as Widget.", bad: "Empty or copy-pasted from Widget without adjusting tone." }
+        ]},
+        { name: "Email Analysis Tool", items: [
+          { id: "gc-e-4", name: "Analysis Tool used to pre-process incoming emails", good: "Extracts CVs, detects keywords, runs background actions, and conditionally branches before first reply. First reply is targeted.", bad: "Unused. Bot reads the email at face value and asks for info already in the email." }
+        ]}
+      ]},
+      { title: "Voice Configuration", product: "voice", bands: [
+        { name: "Voice-Specific Setup", items: [
+          { id: "gc-v-1", name: "Voice AI Personality is voice-specific", good: "Short sentences, simple words, no jargon. Misheard fallback documented.", bad: "Reused from Widget. Reads URLs aloud. Uses written abbreviations." },
+          { id: "gc-v-2", name: "Glossary is voice-aware", good: "Acronyms have pronunciation guidance where needed.", bad: "Glossary contains written abbreviations the bot tries to pronounce." }
+        ]}
+      ]},
+      { title: "API Configuration", product: "api", bands: [
+        { name: "API Setup", items: [
+          { id: "gc-a-1", name: "API channel intentionally configured", good: "Own brand or tag where the experience differs. Channel-specific overrides.", bad: "API requests routed into Widget flows. UI elements (cards, buttons) leak into responses." },
+          { id: "gc-a-2", name: "API key scoping", good: "Each integration has its own scoped key. Domain restrictions in place. Rotation cadence defined.", bad: "One shared key everywhere. No rotation history." }
+        ]}
+      ]},
+      { title: "Assist Configuration", product: "assist", bands: [
+        { name: "Assist Setup", items: [
+          { id: "gc-as-1", name: "AI Personality optimized for agent-facing outputs", good: "Structured, skimmable, no small talk. Explicit assumptions stated.", bad: "Customer-facing personality reused. Agents get conversational fluff." },
+          { id: "gc-as-2", name: "Assist embedded where agents already work", good: "One-click access from Zendesk, Salesforce, or Slack ticket.", bad: "Separate window agents never open. Adoption near zero." }
+        ]}
+      ]}
+    ]
+  },
+  widget: {
+    title: "Widget",
+    principle: "KR handles content. Autoflows handle structured resolution and actions. If a customer is building autoflows that just type out FAQ answers, the audit fails.",
+    subsections: [
+      { title: "Knowledge Retrieval", bands: [
+        { name: "KR Foundation", items: [
+          { id: "w-kr-1", name: "Connected to the right KB sources", good: "All relevant sources connected. Sync is recent. Article coverage matches top ticket topics.", bad: "Single stale source. Top 10 ticket reasons have no documentation." },
+          { id: "w-kr-2", name: "KR Autoflow customizes behavior beyond default search", good: "Enforces format, length, structure, action-word bolding, next-step nudges. Disambiguates by product where relevant.", bad: "Default KR. Long unstructured paragraphs. Returns wrong-product answers." },
+          { id: "w-kr-3", name: "Constraints prevent invented steps", good: "'Do not invent steps not found in retrieved content' in policy. Response length capped.", bad: "No constraints. Bot adds steps that don't exist in the KB." }
+        ]},
+        { name: "Knowledge Coaching", items: [
+          { id: "w-kr-4", name: "Knowledge Coaching used to fine-tune behavior", good: "Topic-specific tunes (e.g., ask about referral codes before answering). Updated when chat reviews surface bad behavior.", bad: "Never used. Customer manages quirks by writing more autoflows instead." }
+        ]}
+      ]},
+      { title: "Autoflow Build Quality", bands: [
+        { name: "Flow Type Fit", items: [
+          { id: "w-af-1", name: "Type matches the use case (1 instructional, 2 retrieval, 3 action+data, 4 triage)", good: "Action-based issues are Type 3. Doc-able topics are Type 2. Triage is Type 4 and only routes. Type 1 is rare and justified.", bad: "Type 1 used where docs exist. Triage flows contain full troubleshooting. Real operations built as text instructions." }
+        ]},
+        { name: "Intent Definition", items: [
+          { id: "w-af-2", name: "Title follows 'Category – Specific Issue'", good: "2-5 words. Customer-facing language. Unique across workspace.", bad: "Internal names like 'flow_v3_FINAL.' Vague titles like 'General Help.'" },
+          { id: "w-af-3", name: "Description includes 'should NOT trigger' boundaries", good: "Every description names common misfire intents to exclude (e.g., 'NOT for SSO logins').", bad: "One-sentence descriptions. No boundary language. Routing misfires weekly." },
+          { id: "w-af-4", name: "Training phrases are non-redundant edge cases (5-8 max)", good: "Each phrase adds new signal. Real-world informal phrasing.", bad: "20+ phrases that all rephrase the same thing. Overfit." }
+        ]},
+        { name: "4C Structure", items: [
+          { id: "w-af-5", name: "Call to Action defines role, problem, success, scope", good: "2-4 sentences. Names what the AI does and what is NOT in scope.", bad: "Missing or vague: 'Help the user with their issue.'" },
+          { id: "w-af-6", name: "Context loads pre-knowledge a senior agent would have", good: "Product/plan differences, confused terminology, governing conditions, known pitfalls.", bad: "Empty or restates the CTA. Or contains step-by-step instructions." },
+          { id: "w-af-7", name: "Constraints in their own section, never inside steps", good: "All hard rules at the top. Apply universally. Includes data/security, capability, tone, workflow logic.", bad: "Constraints buried in step 4. Model treats them as conditional and ignores in other branches." },
+          { id: "w-af-8", name: "Content is numbered, one logical block per step", good: "Branches as sub-bullets. Every branch resolves, escalates, or reroutes. No dead ends.", bad: "Wall of text. Branches that just stop. User left with no resolution." },
+          { id: "w-af-9", name: "Final step: confirm resolution + fire event + CSAT trigger", good: "Resolution event fires before CSAT for analytics correlation.", bad: "Flow ends abruptly. No event. No CSAT." }
+        ]},
+        { name: "Action Quality (Type 3)", items: [
+          { id: "w-af-10", name: "No action fires before required CVs are collected and validated", good: "Form component for multi-field collection. CV types match action requirements.", bad: "Actions fire with empty CVs. API errors and silent failures common." },
+          { id: "w-af-11", name: "Action failures have explicit fallback paths", good: "Retry once, then escalate to Standard Handoff with $IssueDescription collected.", bad: "Action returns null and flow proceeds anyway. User gets confusing response or loops." },
+          { id: "w-af-12", name: "Branching uses system response, not user claim", good: "Subscription status, eligibility, etc. validated by action response.", bad: "Bot trusts 'yes I have a subscription' and tries to cancel a nonexistent one." },
+          { id: "w-af-13", name: "Only invoked actions enabled in action menu", good: "Right-rail menu only shows actions actually used.", bad: "Action menu is a dumping ground. Model occasionally fires random actions." }
+        ]},
+        { name: "CV Hygiene", items: [
+          { id: "w-af-14", name: "CVs created only when used in branching, action, or referenced 2+ times", good: "Every CV has a clear purpose. PascalCase, noun-first naming.", bad: "Hundreds of orphan CVs. Inconsistent naming ($x, $temp1, $email_v2)." },
+          { id: "w-af-15", name: "CV types match the data and validation", good: "Email type for email fields. Number for numeric IDs. Boolean for flags. Dynamic List for multi-object responses.", bad: "Everything is Short Text. Actions fail because validation rejects malformed values." }
+        ]},
+        { name: "Components", items: [
+          { id: "w-af-16", name: "Forms used for multi-field collection", good: "Any 2+ field collection feeding an action uses a Form.", bad: "Multi-turn freeform collection. Wrong format kills downstream actions." },
+          { id: "w-af-17", name: "Option Menu for classification, Conditions for deterministic routing", good: "Yes/no and category questions use Option Menu. Workflow-tag routing uses Conditions.", bad: "Classification done via freeform text. Bot misinterprets answers regularly." },
+          { id: "w-af-18", name: "Static Text for compliance / verbatim language", good: "Legal disclaimers and must-be-exact policy use Static Text.", bad: "Compliance language passed through generative steps. Wording drifts." }
+        ]},
+        { name: "Smart Escalation", items: [
+          { id: "w-af-19", name: "Each flow has flow-specific handoff data collection", good: "Critical context (issue type, identifiers, attempted steps, attachments) collected before handoff. Agent resolves on first reply.", bad: "Every flow uses a generic Standard Handoff. Agents start every ticket from zero." },
+          { id: "w-af-20", name: "Standard Handoff lives in a reusable subflow", good: "One subflow that all flows reroute to once context is collected.", bad: "Handoff logic copy-pasted into every flow." }
+        ]},
+        { name: "Classification Flows", items: [
+          { id: "w-af-21", name: "Classification flows used when one intent maps to multiple sub-issues", good: "Asks 1-2 disambiguating questions, then reroutes (e.g., points missing vs incorrect amount).", bad: "Single bloated flow tries to handle 5+ sub-issues with chained branching." }
+        ]},
+        { name: "Governance & QA", items: [
+          { id: "w-af-22", name: "Naming consistent, deprecated flows archived", good: "'Category – Issue' naming. Folder structure reflects products. Old flows archived.", bad: "Random naming. Five 'v1' 'v2' 'FINAL' duplicates active simultaneously." },
+          { id: "w-af-23", name: "A/B tested for any meaningful rebuild", good: "Rebuilds launched as A/B against the original. Compared on deflection and CSAT.", bad: "Rebuilt flows pushed live without comparison. Customer guesses whether it helped." },
+          { id: "w-af-24", name: "Five-test sweep before launch", good: "Happy path, negative, edge case, error handling, channel-specific.", bad: "Launched after a single happy-path test. Edge cases hit production." }
+        ]}
+      ]},
+      { title: "Initial Intent / JWT & Analytics", bands: [
+        { name: "Initial Intent", items: [
+          { id: "w-ii-1", name: "Initial Intent used where multiple entry points or JWT exist", good: "Central flow handles greeting, parses JWT, sets CVs, and routes by entry point.", bad: "Every entry point reaches the same generic greeting. Identity actions repeated in every flow." }
+        ]},
+        { name: "Analytics", items: [
+          { id: "w-an-1", name: "Custom Analytics / Insights cards for business-critical metrics", good: "Customer-specific metrics surfaced (e.g., approved cardholder count). Reviewed in customer reviews.", bad: "Default analytics only. Business outcomes not tracked." },
+          { id: "w-an-2", name: "AI QA used for sentiment or custom quality scoring", good: "Defined rubric (looping, frustration, resolution clarity) graded by AI QA.", bad: "AI QA never enabled or never reviewed." }
+        ]}
+      ]}
+    ]
+  },
+  email: {
+    title: "Email",
+    principle: "Front-load actions, branch on outputs, keep autoflows short and hyper-specific. Long monolithic email flows fail silently.",
+    bands: [
+      { name: "Architecture", items: [
+        { id: "e-1", name: "All data-returning actions front-loaded", good: "Actions live at the start, even when used only in some branches. No back-of-flow lookups.", bad: "Actions scattered. Some branches re-fetch data already retrieved." },
+        { id: "e-2", name: "User-type conditioning happens via action outputs, not in flow text", good: "Customer separates user types using identity action outputs, then routes to user-type-specific autoflows.", bad: "User-type logic crammed into long if/else inside a single autoflow." },
+        { id: "e-3", name: "Autoflows are hyper-specific and short", good: "Each autoflow handles one user-type + issue combo. Easy to maintain.", bad: "Mega-autoflow tries to handle 10 user types and 5 issues. Drift constant." }
+      ]},
+      { name: "Response Design", items: [
+        { id: "e-4", name: "Autoflows used wherever logic could vary", good: "Static responses reserved for genuinely fixed cases. 90%+ of volume goes through autoflows.", bad: "Heavy reliance on static responses. They go stale and miss conditions." },
+        { id: "e-5", name: "First reply is information-dense and resolution-oriented", good: "Bullets and short paragraphs. Resolves in 1-2 turns where possible.", bad: "Long conversational paragraphs. Looks like a Slack message." },
+        { id: "e-6", name: "Clarification questions bundled into one reply", good: "If three things are needed, all three asked at once.", bad: "Three separate back-and-forth turns. Each takes 30+ minutes of customer wait." }
+      ]},
+      { name: "Tagging & Tooling", items: [
+        { id: "e-7", name: "Each branch fires a unique tag, tags drive downstream behavior", good: "Tags identify branches in analytics and trigger Zendesk routing or assignment.", bad: "Generic tags. No attribution. No downstream effect." },
+        { id: "e-8", name: "AI Studio used to inspect conversation journey paths", good: "Customer regularly traces why specific email branches fired or fell short.", bad: "Never used. Customer can't explain why an email got the response it did." }
+      ]}
+    ]
+  },
+  api: {
+    title: "API Channel",
+    principle: "Audit it as its own first-class channel, not as Widget overflow. The consuming app renders the response, not Forethought's UI.",
+    bands: [
+      { name: "Setup", items: [
+        { id: "a-1", name: "API channel intentionally configured", good: "Own brand or tag. Channel-specific overrides where the experience differs from Widget.", bad: "Treated as widget. Carousels and rich UI silently break in API consumers." },
+        { id: "a-2", name: "Reused widget flows have channel-specific guards", good: "Constraints handle render differences (no carousels in plain API output).", bad: "Widget UI components leak into API responses." },
+        { id: "a-3", name: "Use case fit", good: "In-product AIs, internal tools, programmatic ticket creation.", bad: "Used as a hack to bypass widget configuration." }
+      ]},
+      { name: "Analytics", items: [
+        { id: "a-4", name: "API channel volume tracked separately", good: "Analytics segment by channel. API deflection viewable independently.", bad: "API metrics rolled up under Widget. No clean view." }
+      ]}
+    ]
+  },
+  voice: {
+    title: "Voice",
+    principle: "Voice users cannot scan, scroll, or re-read. Design for the ear, not the eye.",
+    bands: [
+      { name: "Flow Design", items: [
+        { id: "v-1", name: "One question per turn", good: "Every CV collection step asks for one piece of information.", bad: "Bot asks for email, order number, and reason in one breath." },
+        { id: "v-2", name: "Critical values confirmed aloud", good: "Order numbers and emails read back to user before any action.", bad: "Bot fires cancellation against an unconfirmed order ID it heard wrong." },
+        { id: "v-3", name: "Graceful misheard fallback", good: "'I didn't catch that, could you repeat your order number?' Retries once before escalating.", bad: "Bot loops on misheard answers indefinitely or hangs up." },
+        { id: "v-4", name: "Sentences short, instructions simple", good: "Each response is 1-2 short sentences. Multi-step instructions spread across turns.", bad: "Bot reads paragraphs of help-center text aloud. Users hang up." }
+      ]},
+      { name: "Retrieval & Escalation", items: [
+        { id: "v-5", name: "KR responses summarized to 1-2 essential points", good: "Voice-specific retrieval extracts only what's actionable.", bad: "Bot reads full retrieved article. Call dropped before useful info delivered." },
+        { id: "v-6", name: "Escalation transfers gracefully with context", good: "Customer told they're being transferred, given expected wait, handed off with full context.", bad: "Drops the call or sends to a different IVR menu with no context." }
+      ]}
+    ]
+  },
+  assist: {
+    title: "Assist",
+    principle: "Assist outputs are diagnostic and decision-ready. Agents want the answer plus the next action, not the conversation.",
+    bands: [
+      { name: "Output Quality", items: [
+        { id: "as-1", name: "Outputs are structured (numbered or bulleted)", good: "Skimmable in under 5 seconds. Status, plan, recommendation always in the same shape.", bad: "Wall of text. Agent reads every word to find the answer." },
+        { id: "as-2", name: "Outputs include a recommendation or next step", good: "Beyond facts, every output names the next agent action.", bad: "Reports data only. Agent still has to decide." },
+        { id: "as-3", name: "Assumptions stated explicitly", good: "When the bot inferred something, it says so. Agent can spot bad inferences.", bad: "Bot infers silently." }
+      ]},
+      { name: "Coverage & Adoption", items: [
+        { id: "as-4", name: "Assist has same lookups as Widget", good: "Account, order, and subscription data retrievable from Assist. No agent forced to leave.", bad: "Read-only against limited data. Agents still pull info manually." },
+        { id: "as-5", name: "Adoption tracked at agent level", good: "Customer knows which agents use Assist regularly. Correlates with handle-time reduction.", bad: "No adoption data. Value is unmeasured." }
+      ]}
+    ]
+  },
+  triage: {
+    title: "Triage",
+    principle: "If correct predictions = 100%, the model is not actually being evaluated. A healthy model shows correct predictions less than 100% because humans are correcting it.",
+    bands: [
+      { name: "Model Configuration", items: [
+        { id: "t-1", name: "Ground truth field is set per model", good: "Every model evaluates predictions against a field humans (or business processes) update.", bad: "Unset. Model shows 100% correct because it's evaluating itself against itself." },
+        { id: "t-2", name: "Ground truth field is actively maintained", good: "Agents update it when predictions are wrong. Correct-prediction rate is below 100%.", bad: "Set but never updated. Model still shows 100% even when transcripts say otherwise." }
+      ]},
+      { name: "Label Set Quality", items: [
+        { id: "t-3", name: "Label set matches what agents actually append", good: "Customer reviews team's tagging behavior. Missing labels added.", bad: "Frozen at launch. Agents append values we don't predict." },
+        { id: "t-4", name: "Label descriptions are detailed (LLM models)", good: "Each label has a thorough description capturing nuances. Updated when business rules change.", bad: "One-word names with no description. LLM has nothing to differentiate similar labels." }
+      ]},
+      { name: "Orchestrator & Cadence", items: [
+        { id: "t-5", name: "Orchestrator used for conditional prediction dependencies", good: "Predictions only fire when other conditions are met (e.g., spam only when no attachment).", bad: "Every model fires on every ticket. Predictions on irrelevant tickets pollute analytics." },
+        { id: "t-6", name: "Customer reviews model performance regularly", good: "Monthly review of correct-prediction rate, distribution shifts, and missed labels.", bad: "Launched and never reviewed. Drift undetected for months." },
+        { id: "t-7", name: "Predictions feed downstream automation", good: "Predicted labels drive routing, prioritization, or auto-responses.", bad: "Predictions appended but ignored. No business impact." }
+      ]}
+    ]
+  },
+  discover: {
+    title: "Discover",
+    principle: "Discover only delivers value when wired into the customer's knowledge management workflow. A customer who reviews Discover but never closes a gap is observing it, not adopting it.",
+    bands: [
+      { name: "Adoption", items: [
+        { id: "d-1", name: "Labels actively applied to content gaps", good: "Customer uses labels (rejected, duplicate, in progress, article created). Forethought stops regenerating addressed gaps.", bad: "Labels never applied. Same gaps regenerate every cycle. Customer sees Discover as noise." },
+        { id: "d-2", name: "Defined Discover review cadence", good: "Weekly or biweekly review tied to a knowledge content owner. Closed gaps result in articles or rejections within the cycle.", bad: "Reviewed once at launch and never since. Backlog grows unchecked." }
+      ]},
+      { name: "Segmentation & Output", items: [
+        { id: "d-3", name: "Filters segment gaps by product / use case / customer type", good: "Filters mirror KB structure. Owners review only their relevant slice.", bad: "All gaps in one undifferentiated list. Owners disengage." },
+        { id: "d-4", name: "Generated articles are reviewed and edited", good: "Content team treats Discover output as a draft. Edits for tone, accuracy, brand voice.", bad: "Drafts published verbatim. Articles read like generic AI text." }
+      ]},
+      { name: "Feedback Loop", items: [
+        { id: "d-5", name: "KR fallback cases feed Discover", good: "Where Widget KR returns nothing useful, those cases surface in Discover. Closes the loop.", bad: "Discover and Widget operate in silos. Same gaps recur month after month." }
+      ]}
+    ]
+  }
+};
+
+const PRODUCTS = [
+  { id: "widget", name: "Widget", desc: "Chat widget on web/mobile" },
+  { id: "email", name: "Email", desc: "Email automation" },
+  { id: "voice", name: "Voice", desc: "Voice channel" },
+  { id: "api", name: "API", desc: "API channel" },
+  { id: "assist", name: "Assist", desc: "Agent-facing AI" },
+  { id: "triage", name: "Triage", desc: "Ticket prediction" },
+  { id: "discover", name: "Discover", desc: "Content gap analysis" }
+];
+
+const SECTION_ORDER = ["globalConfig", "widget", "email", "api", "voice", "assist", "triage", "discover"];
+
+// ============================================
+// STATE
+// ============================================
+const state = {
+  view: "setup",      // "setup" | "audit" | "summary"
+  activeSection: null,
+  customer: "",
+  csmName: "",
+  selectedProducts: new Set(),
+  scores: {}
+};
+
+// ============================================
+// COMPUTED HELPERS
+// ============================================
+function getActiveSectionKeys() {
+  const keys = [];
+  const hasChannel = ["widget","email","voice","api","assist"].some(p => state.selectedProducts.has(p));
+  if (hasChannel) keys.push("globalConfig");
+  ["widget","email","api","voice","assist","triage","discover"].forEach(k => {
+    if (state.selectedProducts.has(k)) keys.push(k);
+  });
+  return keys;
+}
+
+function getSection(key) {
+  if (key !== "globalConfig") return AUDIT_DATA[key];
+  const sec = JSON.parse(JSON.stringify(AUDIT_DATA.globalConfig));
+  sec.subsections = sec.subsections.filter(ss => state.selectedProducts.has(ss.product));
+  return sec;
+}
+
+function flattenItems(section) {
+  const out = [];
+  if (section.subsections) {
+    section.subsections.forEach(ss => ss.bands.forEach(b => b.items.forEach(it =>
+      out.push({ ...it, sectionTitle: section.title, subTitle: ss.title, bandName: b.name })
+    )));
+  } else if (section.bands) {
+    section.bands.forEach(b => b.items.forEach(it =>
+      out.push({ ...it, sectionTitle: section.title, bandName: b.name })
+    ));
+  }
+  return out;
+}
+
+function getSectionStats(section) {
+  const items = flattenItems(section);
+  const scores = items.map(it => state.scores[it.id]);
+  const numeric = scores.filter(s => typeof s === "number");
+  const total = numeric.reduce((a, b) => a + b, 0);
+  const avg = numeric.length > 0 ? total / numeric.length : 0;
+  const naCount = scores.filter(s => s === "na").length;
+  return {
+    avg,
+    total,
+    scoredCount: numeric.length,
+    naCount,
+    untouched: items.length - numeric.length - naCount,
+    totalItems: items.length
+  };
+}
+
+function getOverallProgress() {
+  let scored = 0, total = 0;
+  getActiveSectionKeys().forEach(k => {
+    const s = getSectionStats(getSection(k));
+    scored += s.scoredCount + s.naCount;
+    total += s.totalItems;
+  });
+  return { scored, total, pct: total > 0 ? Math.round((scored / total) * 100) : 0 };
+}
+
+// ============================================
+// ACTIONS
+// ============================================
+function setScore(id, score) {
+  if (state.scores[id] === score) delete state.scores[id];
+  else state.scores[id] = score;
+  render();
+}
+function toggleProduct(id) {
+  if (state.selectedProducts.has(id)) state.selectedProducts.delete(id);
+  else state.selectedProducts.add(id);
+  render();
+}
+function startAudit() {
+  state.view = "audit";
+  state.activeSection = getActiveSectionKeys()[0] || null;
+  render();
+  window.scrollTo(0, 0);
+}
+function gotoSection(key) {
+  state.view = "audit";
+  state.activeSection = key;
+  render();
+  window.scrollTo(0, 0);
+}
+function gotoSummary() {
+  state.view = "summary";
+  render();
+  window.scrollTo(0, 0);
+}
+function backToSetup() {
+  state.view = "setup";
+  render();
+  window.scrollTo(0, 0);
+}
+function nextSection() {
+  const keys = getActiveSectionKeys();
+  const idx = keys.indexOf(state.activeSection);
+  if (idx < keys.length - 1) {
+    state.activeSection = keys[idx + 1];
+    render();
+    window.scrollTo(0, 0);
+  } else {
+    gotoSummary();
+  }
+}
+function prevSection() {
+  const keys = getActiveSectionKeys();
+  const idx = keys.indexOf(state.activeSection);
+  if (idx > 0) {
+    state.activeSection = keys[idx - 1];
+    render();
+    window.scrollTo(0, 0);
+  } else {
+    backToSetup();
+  }
+}
+function restart() {
+  if (confirm("Start a new audit? This will clear all scores.")) {
+    state.view = "setup";
+    state.activeSection = null;
+    state.customer = "";
+    state.csmName = "";
+    state.selectedProducts = new Set();
+    state.scores = {};
+    render();
+    window.scrollTo(0, 0);
+  }
+}
+
+// ============================================
+// SVG ICONS
+// ============================================
+const ICONS = {
+  check: '<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3 3 7-7"/></svg>',
+  checkCircle: '<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.97 5.97L7.5 10.44 4.78 7.72a.75.75 0 00-1.06 1.06l3.25 3.25a.75.75 0 001.06 0l5-5a.75.75 0 10-1.06-1.06z"/></svg>',
+  x: '<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm2.97 5.03L8 8l2.97 2.97a.75.75 0 11-1.06 1.06L7 9.06l-2.97 2.97a.75.75 0 01-1.06-1.06L5.94 8 2.97 5.03a.75.75 0 011.06-1.06L7 6.94l2.97-2.97a.75.75 0 011.06 1.06z"/></svg>',
+  arrowRight: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
+  arrowLeft: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 12L3 8l4-4"/></svg>',
+  copy: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5"/></svg>',
+  download: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4 7l4 4 4-4M2 14h12"/></svg>',
+  inbox: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>'
+};
+
+// ============================================
+// RENDERERS
+// ============================================
+function el(html) {
+  const d = document.createElement("div");
+  d.innerHTML = html.trim();
+  return d.firstElementChild;
+}
+
+function renderSidebar() {
+  const keys = getActiveSectionKeys();
+  const overall = getOverallProgress();
+
+  let nav = "";
+  if (state.view === "setup") {
+    nav = `
+      <div class="nav-section-label">Steps</div>
+      <button class="nav-item active">
+        <span class="nav-label">
+          <span class="nav-dot"></span>
+          <span class="nav-label-text">Setup</span>
+        </span>
+      </button>
+      <button class="nav-item" disabled style="opacity:0.5;cursor:not-allowed;">
+        <span class="nav-label">
+          <span class="nav-dot"></span>
+          <span class="nav-label-text">Score audit</span>
+        </span>
+      </button>
+      <button class="nav-item" disabled style="opacity:0.5;cursor:not-allowed;">
+        <span class="nav-label">
+          <span class="nav-dot"></span>
+          <span class="nav-label-text">Action plan</span>
+        </span>
+      </button>
+    `;
+  } else {
+    nav = `<div class="nav-section-label">Sections</div>`;
+    keys.forEach(k => {
+      const sec = getSection(k);
+      const stats = getSectionStats(sec);
+      const dotClass = stats.untouched === 0 ? "complete" : (stats.scoredCount + stats.naCount > 0 ? "partial" : "");
+      const isActive = state.view === "audit" && state.activeSection === k;
+      nav += `
+        <button class="nav-item ${isActive ? "active" : ""}" data-goto="${k}">
+          <span class="nav-label">
+            <span class="nav-dot ${dotClass}"></span>
+            <span class="nav-label-text">${sec.title}</span>
+          </span>
+          <span class="nav-progress">${stats.scoredCount + stats.naCount}/${stats.totalItems}</span>
+        </button>
+      `;
+    });
+    nav += `
+      <div class="nav-section-label" style="margin-top:16px;">Output</div>
+      <button class="nav-item ${state.view === "summary" ? "active" : ""}" data-goto-summary>
+        <span class="nav-label">
+          <span class="nav-dot ${overall.pct === 100 ? 'complete' : ''}"></span>
+          <span class="nav-label-text">Action plan</span>
+        </span>
+      </button>
+    `;
+  }
+
+  return `
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">Forethought</div>
+        <div class="brand-title">CSM Audit</div>
+      </div>
+      ${state.customer || state.csmName ? `
+        <div class="audit-meta">
+          <div class="meta-customer">${state.customer || "Untitled audit"}</div>
+          ${state.csmName ? `<div class="meta-csm">${state.csmName}</div>` : ""}
+        </div>
+      ` : `
+        <div class="audit-meta">
+          <div class="meta-empty">No customer set</div>
+        </div>
+      `}
+      <nav class="sidebar-nav">${nav}</nav>
+      ${state.view !== "setup" ? `
+        <div class="sidebar-footer">
+          <div class="overall-progress">
+            <div class="overall-progress-label">
+              <span>Progress</span>
+              <span>${overall.scored}/${overall.total}</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${overall.pct}%;"></div>
+            </div>
+          </div>
+          <button class="btn btn-ghost" data-restart style="font-size:12px; color:var(--text-2);">Start over</button>
+        </div>
+      ` : ""}
+    </aside>
+  `;
+}
+
+function renderTopbar() {
+  if (state.view === "setup") {
+    return `
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="crumb-current">Setup audit</span>
+        </div>
+        <div class="topbar-right"></div>
+      </header>
+    `;
+  }
+  if (state.view === "summary") {
+    return `
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="crumb">${state.customer || "Audit"}</span>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">Action plan</span>
+        </div>
+        <div class="topbar-right">
+          <button class="btn" data-back-audit>${ICONS.arrowLeft} Back to scoring</button>
+        </div>
+      </header>
+    `;
+  }
+  // audit view
+  const sec = getSection(state.activeSection);
+  const keys = getActiveSectionKeys();
+  const idx = keys.indexOf(state.activeSection);
+  const isLast = idx === keys.length - 1;
+  return `
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="crumb">${state.customer || "Audit"}</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-current">${sec.title}</span>
+      </div>
+      <div class="topbar-right">
+        ${idx > 0 ? `<button class="btn" data-prev>${ICONS.arrowLeft} Previous</button>` : ""}
+        <button class="btn btn-primary" data-next>
+          ${isLast ? "View action plan" : "Next section"}
+          ${ICONS.arrowRight}
+        </button>
+      </div>
+    </header>
+  `;
+}
+
+function renderSetupView() {
+  const canStart = state.selectedProducts.size > 0;
+  let totalItems = 0;
+  if (canStart) {
+    getActiveSectionKeys().forEach(k => totalItems += flattenItems(getSection(k)).length);
+  }
+  return `
+    <div class="content">
+      <div class="h-eyebrow">New audit</div>
+      <h1 class="h-title">Set up customer audit</h1>
+      <p class="h-sub">Tell us who you're auditing and which products they use. The checklist will scope to your selection.</p>
+
+      <div class="setup-card">
+        <div class="field">
+          <label class="field-label" for="customer-input">Customer name</label>
+          <input class="field-input" type="text" id="customer-input" value="${state.customer}" placeholder="e.g. ActiveCampaign" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="csm-input">Your name</label>
+          <input class="field-input" type="text" id="csm-input" value="${state.csmName}" placeholder="CSM name" autocomplete="off" />
+        </div>
+      </div>
+
+      <div style="margin-bottom: 12px; display:flex; align-items:baseline; justify-content:space-between;">
+        <h2 style="font-size:16px; font-weight:600;">Products in use</h2>
+        <span style="font-size:12px; color:var(--text-3);">Select at least one</span>
+      </div>
+      <div class="product-grid">
+        ${PRODUCTS.map(p => `
+          <button class="product-tile ${state.selectedProducts.has(p.id) ? "selected" : ""}" data-product="${p.id}">
+            <span class="product-check">${ICONS.check}</span>
+            <span class="product-info">
+              <div class="product-name">${p.name}</div>
+              <div class="product-desc">${p.desc}</div>
+            </span>
+          </button>
+        `).join("")}
+      </div>
+
+      <div class="section-footer">
+        <span style="font-size:13px; color:var(--text-2);">
+          ${canStart ? `${totalItems} items across ${getActiveSectionKeys().length} ${getActiveSectionKeys().length === 1 ? 'section' : 'sections'}` : 'Select products to continue'}
+        </span>
+        <button class="btn btn-primary" data-start ${canStart ? "" : "disabled"}>
+          Start audit ${ICONS.arrowRight}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderItem(item) {
+  const score = state.scores[item.id];
+  const klass = score === undefined ? "" : (score === "na" ? "scored-na" : "scored-" + score);
+  return `
+    <div class="item ${klass}">
+      <div class="item-header">
+        <div class="item-name">${item.name}</div>
+      </div>
+      <div class="item-criteria">
+        <div class="crit-block crit-good">
+          <div class="crit-header">
+            <span class="crit-icon">${ICONS.checkCircle}</span>
+            Good (3)
+          </div>
+          <div class="crit-text">${item.good}</div>
+        </div>
+        <div class="crit-block crit-bad">
+          <div class="crit-header">
+            <span class="crit-icon">${ICONS.x}</span>
+            Bad (1)
+          </div>
+          <div class="crit-text">${item.bad}</div>
+        </div>
+      </div>
+      <div class="score-row">
+        <button class="score-btn ${score === 3 ? "active-3" : ""}" data-score-id="${item.id}" data-score="3">
+          <span class="score-num">3</span><span class="score-label">Strong</span>
+        </button>
+        <button class="score-btn ${score === 2 ? "active-2" : ""}" data-score-id="${item.id}" data-score="2">
+          <span class="score-num">2</span><span class="score-label">Gaps</span>
+        </button>
+        <button class="score-btn ${score === 1 ? "active-1" : ""}" data-score-id="${item.id}" data-score="1">
+          <span class="score-num">1</span><span class="score-label">Broken</span>
+        </button>
+        <button class="score-btn ${score === "na" ? "active-na" : ""}" data-score-id="${item.id}" data-score="na">
+          <span class="score-label">N/A</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAuditView() {
+  const sec = getSection(state.activeSection);
+  const stats = getSectionStats(sec);
+  const keys = getActiveSectionKeys();
+  const idx = keys.indexOf(state.activeSection);
+  const isLast = idx === keys.length - 1;
+
+  let body = "";
+  if (sec.subsections) {
+    body = sec.subsections.map(ss => {
+      const ssItems = ss.bands.reduce((a, b) => a + b.items.length, 0);
+      const ssScored = ss.bands.reduce((a, b) => a + b.items.filter(it => state.scores[it.id] !== undefined).length, 0);
+      return `
+        <div class="subsection-block">
+          <div class="subsection-title">${ss.title}</div>
+          <div class="subsection-meta">${ssScored} of ${ssItems} scored</div>
+          ${ss.bands.map(b => `
+            <div class="band-block">
+              <div class="band-title">${b.name}</div>
+              ${b.items.map(renderItem).join("")}
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }).join("");
+  } else if (sec.bands) {
+    body = sec.bands.map(b => `
+      <div class="band-block">
+        <div class="band-title">${b.name}</div>
+        ${b.items.map(renderItem).join("")}
+      </div>
+    `).join("");
+  }
+
+  return `
+    <div class="content">
+      <div class="h-eyebrow">Section ${idx + 1} of ${keys.length}</div>
+      <h1 class="h-title">${sec.title}</h1>
+      <p class="h-sub">${stats.scoredCount + stats.naCount} of ${stats.totalItems} items scored${stats.scoredCount > 0 ? ` · current avg ${stats.avg.toFixed(2)}` : ""}</p>
+
+      <div class="principle-card">
+        <div class="principle-label">Principle</div>
+        <div class="principle-text">${sec.principle}</div>
+      </div>
+
+      ${body}
+
+      <div class="section-footer">
+        ${idx > 0 ? `<button class="btn" data-prev>${ICONS.arrowLeft} Previous section</button>` : `<span></span>`}
+        <button class="btn btn-primary" data-next>
+          ${isLast ? "View action plan" : "Next section"}
+          ${ICONS.arrowRight}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function buildActionPlanData() {
+  const keys = getActiveSectionKeys();
+  const gaps = [];
+  const sectionStats = [];
+  let totalScored = 0;
+  let grandTotal = 0;
+  keys.forEach(k => {
+    const sec = getSection(k);
+    const stats = getSectionStats(sec);
+    sectionStats.push({ key: k, title: sec.title, ...stats });
+    totalScored += stats.scoredCount;
+    grandTotal += stats.total;
+    flattenItems(sec).forEach(it => {
+      const s = state.scores[it.id];
+      if (s === 1 || s === 2) gaps.push({ ...it, score: s, sectionTitle: sec.title });
+    });
+  });
+  gaps.sort((a, b) => a.score - b.score);
+  const grandAvg = totalScored > 0 ? grandTotal / totalScored : 0;
+  return { gaps, sectionStats, totalScored, grandAvg };
+}
+
+function buildExportText() {
+  const { gaps, sectionStats, totalScored, grandAvg } = buildActionPlanData();
+  const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const line = "=".repeat(60);
+  const dash = "-".repeat(60);
+
+  let out = `${line}\nCSM CUSTOMER AUDIT — ACTION PLAN\n${line}\n\n`;
+  out += `Customer:  ${state.customer || "(not set)"}\n`;
+  out += `CSM:       ${state.csmName || "(not set)"}\n`;
+  out += `Date:      ${date}\n`;
+  out += `Items scored: ${totalScored}   Overall avg: ${grandAvg.toFixed(2)} / 3\n\n`;
+
+  out += `${dash}\nSECTION SCORES\n${dash}\n`;
+  sectionStats.forEach(s => {
+    const avg = s.scoredCount > 0 ? s.avg.toFixed(2) : "n/a";
+    out += s.title.padEnd(45) + (avg + " / 3").padStart(15) + "\n";
+  });
+  out += "\n";
+
+  const critical = gaps.filter(g => g.score === 1);
+  const moderate = gaps.filter(g => g.score === 2);
+
+  out += `${dash}\nCRITICAL ITEMS (score 1) — IMMEDIATE PRIORITY\n${dash}\n`;
+  if (critical.length === 0) {
+    out += "None. No critical issues identified.\n\n";
+  } else {
+    critical.forEach((g, i) => {
+      out += `\n${i + 1}. ${g.name}\n`;
+      out += `   Section: ${g.sectionTitle}${g.subTitle ? " / " + g.subTitle : ""} / ${g.bandName}\n`;
+      out += `   What good looks like: ${g.good}\n`;
+      out += `   Current state: ${g.bad}\n`;
+    });
+    out += "\n";
+  }
+
+  out += `${dash}\nMODERATE GAPS (score 2) — RAISE IN NEXT SYNC\n${dash}\n`;
+  if (moderate.length === 0) {
+    out += "None.\n\n";
+  } else {
+    moderate.forEach((g, i) => {
+      out += `\n${i + 1}. ${g.name}\n`;
+      out += `   Section: ${g.sectionTitle}${g.subTitle ? " / " + g.subTitle : ""} / ${g.bandName}\n`;
+      out += `   Recommendation: ${g.good}\n`;
+    });
+    out += "\n";
+  }
+
+  out += `${dash}\nWEEKLY CORRESPONDENCE — TOP ITEM TO LEAD WITH\n${dash}\n`;
+  if (critical.length > 0) {
+    const top = critical[0];
+    out += `\n${top.name}\n(${top.sectionTitle}${top.subTitle ? " / " + top.subTitle : ""})\n\nRecommendation:\n${top.good}\n`;
+  } else if (moderate.length > 0) {
+    const top = moderate[0];
+    out += `\n${top.name}\n(${top.sectionTitle}${top.subTitle ? " / " + top.subTitle : ""})\n\nRecommendation:\n${top.good}\n`;
+  } else {
+    out += "\nNo gaps identified. Use this audit as positive reinforcement.\n";
+  }
+
+  return out;
+}
+
+function avgClass(avg) {
+  if (avg >= 2.5) return "good";
+  if (avg >= 1.7) return "warn";
+  return "bad";
+}
+function avgFillColor(avg) {
+  if (avg >= 2.5) return "var(--good)";
+  if (avg >= 1.7) return "var(--warn)";
+  return "var(--bad)";
+}
+
+function groupGapsBySection(gaps, level) {
+  const groups = {};
+  gaps.forEach(g => {
+    const key = g.sectionTitle + (g.subTitle ? " / " + g.subTitle : "");
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(g);
+  });
+  return Object.entries(groups).map(([sec, items]) => `
+    <div class="gap-card">
+      <div class="gap-card-header">${sec}</div>
+      ${items.map(g => `
+        <div class="gap-item">
+          <div class="gap-item-name">${g.name}</div>
+          <div class="gap-item-rec"><strong>Recommendation:</strong> ${g.good}</div>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+function renderSummaryView() {
+  const { gaps, sectionStats, totalScored, grandAvg } = buildActionPlanData();
+  const critical = gaps.filter(g => g.score === 1);
+  const moderate = gaps.filter(g => g.score === 2);
+  const ac = avgClass(grandAvg);
+
+  return `
+    <div class="content">
+      <div class="h-eyebrow">Audit complete</div>
+      <h1 class="h-title">Action plan</h1>
+      <p class="h-sub">${state.customer ? state.customer + " · " : ""}${totalScored} items scored. Items with a score of 1 or 2 are surfaced below for follow-up.</p>
+
+      <div class="summary-grid">
+        <div class="summary-stat">
+          <div class="summary-stat-label">Overall average</div>
+          <div class="summary-stat-value ${ac}">${grandAvg.toFixed(2)}<span class="unit"> / 3</span></div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-label">Critical items</div>
+          <div class="summary-stat-value ${critical.length > 0 ? "bad" : "good"}">${critical.length}</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-label">Moderate gaps</div>
+          <div class="summary-stat-value ${moderate.length > 0 ? "warn" : "good"}">${moderate.length}</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-label">Items scored</div>
+          <div class="summary-stat-value">${totalScored}</div>
+        </div>
+      </div>
+
+      <h2 style="font-size:16px; font-weight:600; margin-bottom:12px;">Section scores</h2>
+      <div class="score-bars">
+        ${sectionStats.map(s => {
+          const a = s.scoredCount > 0 ? s.avg : 0;
+          const cls = s.scoredCount > 0 ? avgClass(a) : "na";
+          const widthPct = (a / 3) * 100;
+          const fill = s.scoredCount > 0 ? avgFillColor(a) : "var(--border)";
+          const val = s.scoredCount > 0 ? `${a.toFixed(2)} / 3` : "Not scored";
+          return `
+            <div class="score-bar-row">
+              <div class="score-bar-name">${s.title}</div>
+              <div class="score-bar-track-wrap">
+                <div class="score-bar-track">
+                  <div class="score-bar-fill" style="width:${widthPct}%; background:${fill};"></div>
+                </div>
+                <div class="score-bar-value ${cls}">${val}</div>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+
+      ${critical.length > 0 ? `
+        <div class="gap-section">
+          <div class="gap-section-header">
+            <div class="gap-section-title">
+              Critical items
+              <span class="gap-count-pill crit">${critical.length}</span>
+            </div>
+          </div>
+          <div class="gap-section-sub">Score of 1. These should drive your next customer conversation.</div>
+          ${groupGapsBySection(critical, 1)}
+        </div>
+      ` : `
+        <div class="gap-section" style="background:var(--good-bg); border:1px solid #BBF7D0; border-radius:var(--r-md); padding:20px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:24px; height:24px; border-radius:50%; background:var(--good); color:white; display:flex; align-items:center; justify-content:center;">${ICONS.check}</div>
+            <div>
+              <div style="font-weight:600; color:var(--good); margin-bottom:2px;">No critical issues</div>
+              <div style="font-size:13px; color:var(--text-2);">Nothing scored a 1. The customer is in solid shape.</div>
+            </div>
+          </div>
+        </div>
+      `}
+
+      ${moderate.length > 0 ? `
+        <div class="gap-section">
+          <div class="gap-section-header">
+            <div class="gap-section-title">
+              Moderate gaps
+              <span class="gap-count-pill mod">${moderate.length}</span>
+            </div>
+          </div>
+          <div class="gap-section-sub">Score of 2. Worth raising in your next sync once critical items are resolved.</div>
+          ${groupGapsBySection(moderate, 2)}
+        </div>
+      ` : ""}
+
+      <div class="export-section">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="font-size:14px; font-weight:600; margin-bottom:2px;">Plain text export</div>
+            <div style="font-size:12px; color:var(--text-2);">Copy this into your weekly correspondence, ticket, or doc.</div>
+          </div>
+          <div class="btn-row">
+            <span class="copy-toast" id="copy-toast">${ICONS.check} Copied</span>
+            <button class="btn" data-copy>${ICONS.copy} Copy</button>
+            <button class="btn" data-download>${ICONS.download} Download</button>
+          </div>
+        </div>
+        <textarea class="export-textarea" id="export-text" readonly>${buildExportText()}</textarea>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
+// MAIN RENDER
+// ============================================
+function render() {
+  const app = document.getElementById("app");
+  let viewHtml = "";
+  if (state.view === "setup") viewHtml = renderSetupView();
+  else if (state.view === "audit" && state.activeSection) viewHtml = renderAuditView();
+  else if (state.view === "summary") viewHtml = renderSummaryView();
+  else viewHtml = renderSetupView();
+
+  app.innerHTML = `
+    ${renderSidebar()}
+    <main class="main">
+      ${renderTopbar()}
+      ${viewHtml}
+    </main>
+  `;
+  attachEvents();
+}
+
+function attachEvents() {
+  const customerInput = document.getElementById("customer-input");
+  if (customerInput) {
+    customerInput.addEventListener("input", e => {
+      state.customer = e.target.value;
+      // update sidebar without full re-render
+      const meta = document.querySelector(".meta-customer");
+      const empty = document.querySelector(".meta-empty");
+      if (meta) meta.textContent = state.customer || "Untitled audit";
+      if (empty) empty.textContent = state.customer ? state.customer : "No customer set";
+    });
+  }
+  const csmInput = document.getElementById("csm-input");
+  if (csmInput) {
+    csmInput.addEventListener("input", e => { state.csmName = e.target.value; });
+  }
+
+  document.querySelectorAll("[data-product]").forEach(el => {
+    el.addEventListener("click", () => toggleProduct(el.getAttribute("data-product")));
+  });
+
+  document.querySelectorAll("[data-score-id]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.getAttribute("data-score-id");
+      const raw = el.getAttribute("data-score");
+      const score = raw === "na" ? "na" : parseInt(raw);
+      setScore(id, score);
+    });
+  });
+
+  document.querySelectorAll("[data-goto]").forEach(el => {
+    el.addEventListener("click", () => gotoSection(el.getAttribute("data-goto")));
+  });
+
+  const startBtn = document.querySelector("[data-start]");
+  if (startBtn) startBtn.addEventListener("click", startAudit);
+
+  document.querySelectorAll("[data-next]").forEach(el => el.addEventListener("click", nextSection));
+  document.querySelectorAll("[data-prev]").forEach(el => el.addEventListener("click", prevSection));
+  document.querySelectorAll("[data-goto-summary]").forEach(el => el.addEventListener("click", gotoSummary));
+  document.querySelectorAll("[data-back-audit]").forEach(el => el.addEventListener("click", () => {
+    state.view = "audit";
+    if (!state.activeSection) state.activeSection = getActiveSectionKeys()[0];
+    render();
+    window.scrollTo(0, 0);
+  }));
+
+  document.querySelectorAll("[data-restart]").forEach(el => el.addEventListener("click", restart));
+
+  const copyBtn = document.querySelector("[data-copy]");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      const text = document.getElementById("export-text").value;
+      const showToast = () => {
+        const t = document.getElementById("copy-toast");
+        if (t) {
+          t.classList.add("show");
+          setTimeout(() => t.classList.remove("show"), 1800);
+        }
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(showToast).catch(() => {
+          const ta = document.getElementById("export-text");
+          ta.select(); document.execCommand("copy"); showToast();
+        });
+      } else {
+        const ta = document.getElementById("export-text");
+        ta.select(); document.execCommand("copy"); showToast();
+      }
+    });
+  }
+
+  const dlBtn = document.querySelector("[data-download]");
+  if (dlBtn) {
+    dlBtn.addEventListener("click", () => {
+      const text = document.getElementById("export-text").value;
+      const safe = (state.customer || "audit").replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `audit_action_plan_${safe}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+}
+
+render();
+</script>
+</body>
+</html>
